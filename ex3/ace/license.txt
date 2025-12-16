@@ -1,0 +1,11 @@
+Model Information:
+* title:	Portgas D Ace Hat
+* source:	https://sketchfab.com/3d-models/portgas-d-ace-hat-621f3f2b85b2476f8e2986d4193381c1
+* author:	Baddier (https://sketchfab.com/baddier.1310)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Portgas D Ace Hat" (https://sketchfab.com/3d-models/portgas-d-ace-hat-621f3f2b85b2476f8e2986d4193381c1) by Baddier (https://sketchfab.com/baddier.1310) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
