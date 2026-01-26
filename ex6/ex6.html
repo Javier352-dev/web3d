@@ -1,0 +1,52 @@
+<html>
+ <head>
+   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+       <script>
+        AFRAME.registerComponent("mylink", {
+        init: function() {  
+         this.el.addEventListener("click", (e) => {              
+            window.location = this.data.href;      
+           })
+        }
+      })
+    </script>
+
+ </head>
+ <body>
+   <a-assets>
+     <img id="imgSortida" src="assets/entragroc.png" >
+     <img id="imgFantasma" src="assets/fantasma.png" >
+     <img id="imgCasa" src="assets/casadelsusto.jpg" >
+     <a-asset-item id="dracula" src="assets/zeruel_pt2.glb"></a-asset-item>
+     <a-asset-item id="dracula" src="assets/white_plush_bat_toy.glb"></a-asset-item>
+
+
+   </a-assets>
+       <a-entity camera look-controls wasd-controls="false">
+    <!-- fuseTimeout = el temps que triga en fer click des de que es posiciona sobre un objecte-->
+     <a-entity cursor="fuse: true; fuseTimeout: 2000"
+           position="0 0 -1"
+           geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+           material="color: red; shader: flat"
+           animation="property: components.material.material.color;
+                 type: color;
+                 to: white;
+                 dur: 1000; 
+                 dir: alternate;
+                 loop: true">
+     </a-entity>
+    </a-entity>
+  
+   <a-scene cursor="rayOrigin: mouse">
+     <a-sky src="#imgCasa"></a-sky>
+      <a-sphere position="5 2 -5" radius="1"  src="#imgFantasma"
+               animation="property: rotation; dur: 6000;
+                      to: 0 360 0; loop: true">        
+      </a-sphere>
+        <a-entity gltf-model="assets/zeruel_pt2.glb" position="-4.913 0.934 0.776" scale="0.02 0.02 0.02" rotation="0.000 102.123 0.000" animation="property: position; to: -52.171 0.934 0.776; dur: 5000; dir: alternate; loop: true"></a-entity>></a-entity>
+        <a-entity gltf-model="assets/white_plush_bat_toy.glb" position="4.913 0.934 0.776" scale="0.02 0.02 0.02" rotation="0.000 102.123 0.000"></a-entity>
+
+     <a-plane position="-2 2 -6" src="#imgSortida" transparent="true" mylink="href: https://www.youtube.com/watch?v=AHWmZMwOi4w/;"></a-plane>
+   </a-scene>
+ </body>
+</html>
