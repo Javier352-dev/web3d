@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Casa Toriel</title>
+<style>
+body { margin:0; overflow:hidden; }
+
+/* INVENTARIO */
+#inventory {
+position: fixed;
+bottom: 10px;
+left: 10px;
+background: rgba(0,0,0,0.7);
+padding: 10px;
+border: 2px solid white;
+color: white;
+font-family: Arial;
+z-index: 999;
+}
+
+#inventory img {
+width: 50px;
+margin-top: 5px;
+}
+
+/* MENSAJE SUPERIOR */
+#topMessage {
+position: fixed;
+top: 20px;
+left: 50%;
+transform: translateX(-50%);
+background: rgba(0,0,0,0.85);
+color: white;
+padding: 15px;
+font-family: Arial;
+font-size: 22px;
+border: 2px solid white;
+display: none;
+z-index: 1000;
+}
+</style>
+
+<script type="importmap">
+{
+ "imports": {
+ "three": "https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.module.js"
+ }
+}
+</script>
+</head>
+<body>
+
+<div id="inventory">
+<b>Inventario</b>
+<div id="inventoryItems"></div>
+</div>
+
+<div id="topMessage">Gracias, estaba muy rico, Toma</div>
+<audio id="bgMusic" loop>
+  <source src="Home.mp3" type="audio/mpeg">
+</audio>
+<script type="module">
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//localStorage.setItem("gameInventory", JSON.stringify([]));
+//////////////////////////////////////////////////////////////////////////////////////////////////
+import * as THREE from "three";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/loaders/GLTFLoader.js";
+import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/controls/PointerLockControls.js";
+
+/* ================= INVENTARIO COMPATIBLE TOTAL ================= */
+
+function getInventory(){
+let inv = JSON.parse(localStorage.getItem("gameInventory")) || [];
+
+
+// 🔥 Convertir strings antiguos a objetos
+inv = inv.map(item => {
+
+if(typeof item === "string"){
+if(item === "patito") return {name:"patito", image:"patito.jpeg"};
+if(item === "ketchup") return {name:"ketchup", image:"./models/ketchup.png"};
+if(item === "Llave1") return {name:"Llave1", image:"Llave1.png"};
+if(item === "jetchu") return {name:"jetchu", image:"jetchu.png"};
+if(item === "jetchu") return {name:"jetchu", image:"jetchu.png"};
+if(item === "Llave") return {name:"Llave2", image:"Llave2.png"};
+}
+
+return item;
+});
+
+saveInventory(inv);
+return inv;
+}
+
+function saveInventory(inv){
+localStorage.setItem("gameInventory", JSON.stringify(inv));
+}
+
+function renderInventory(){
+const container = document.getElementById("inventoryItems");
+container.innerHTML = "";
+
+const inv = getInventory();
+
+inv.forEach(item=>{
+let img=document.createElement("img");
+img.src=item.image;
+container.appendChild(img);
+});
+}
+
+function hasItem(name){
+return getInventory().some(i=>i.name===name);
+}
+
+function removeItem(name){
+let inv=getInventory();
+inv=inv.filter(i=>i.name!==name);
+saveInventory(inv);
+renderInventory();
+}
+
+function addItem(name){
+
+if(hasItem(name)) return;
+
+let imagePath="";
+
+if(name==="patito") imagePath="patito.jpeg";
+if(name==="ketchup") imagePath="./models/ketchup.png";
+if(name==="Llave1") imagePath="Llave1.png";
+if(name==="jetchu") imagePath="jetchu.png";
+if(name==="Llave2") imagePath="Llave2.png";
+
+let inv=getInventory();
+inv.push({name:name,image:imagePath});
+
+saveInventory(inv);
+renderInventory();
+}
+
+renderInventory();
+
+
+/* ================= THREE ================= */
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x000000);
+/* ================= MÚSICA ================= */
+
+const music = document.getElementById("bgMusic");
+music.volume = 0.8; // volumen (0.0 a 1.0)
+
+document.body.addEventListener("click", () => {
+    music.play().catch(()=>{});
+});
+
+const camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+const renderer=new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const light=new THREE.AmbientLight(0xffffff,1);
+scene.add(light);
+
+const controls=new PointerLockControls(camera,document.body);
+document.body.addEventListener("click",()=>controls.lock());
+scene.add(controls.getObject());
+
+camera.position.set(9,1.6,-1);
+
+const walls=[];
+function createWall(x,y,z,w,h,d){
+const wall=new THREE.Mesh(
+new THREE.BoxGeometry(w,h,d),
+new THREE.MeshBasicMaterial({transparent:true,opacity:0})
+);
+wall.position.set(x,y,z);
+scene.add(wall);
+walls.push(wall);
+}
+
+/* ===== FUNCIÓN TEXTO FLOTANTE ===== */
+
+function createText(text){
+const canvas=document.createElement("canvas");
+canvas.width=512;
+canvas.height=128;
+const ctx=canvas.getContext("2d");
+ctx.fillStyle="white";
+ctx.font="10px Arial";
+ctx.textAlign="center";
+ctx.fillText(text,256,70);
+
+const sprite=new THREE.Sprite(
+new THREE.SpriteMaterial({map:new THREE.CanvasTexture(canvas)})
+);
+sprite.scale.set(3,1,1);
+sprite.visible=false;
+return sprite;
+}
+
+let moveForward=false,moveBackward=false,moveLeft=false,moveRight=false;
+let interactPressed=false;
+
+let susieText,susieInteractCube;
+let bathroomCube,bathroomText;
+let tiendaCube,tiendaText;
+let teleCube,habitacionCube;
+let teleText,habitacionText;
+
+let teleX=2, teleY=1, teleZ=-2;
+let habitacionX=-2, habitacionY=1, habitacionZ=-2;
+
+const loader=new GLTFLoader();
+
+loader.load("./models/CasaDeToriel.glb",(gltf)=>{
+
+scene.add(gltf.scene);
+
+const box=new THREE.Box3().setFromObject(gltf.scene);
+const min=box.min;
+const max=box.max;
+
+const centerX=(min.x+max.x)/2;
+const centerZ=(min.z+max.z)/2;
+const height=max.y-min.y;
+const width=max.x-min.x;
+const depth=max.z-min.z;
+
+/* PAREDES */
+createWall(centerX - 2, height/2, centerZ - 3.4, width/3, height, 0.5);
+createWall(centerX - 7.75, height/2, centerZ, 0.5, height, 10);
+createWall(centerX - 4.5, height/2, centerZ - 3, 1.4, height, depth/3);
+createWall(centerX + 7.75, height/2, centerZ, 0.5, height, 12);
+createWall(centerX -7.2, height/2, centerZ - 5.59, 1, height, 8);
+createWall(centerX + 0.78, height/2, centerZ -7.47, 0.7, height, 10);
+createWall(centerX + 2, height/2, centerZ - 4.1, 22, height, 0.5);
+createWall(centerX + 0.78, height/2, centerZ + 7.57, 0.7, height, 10);
+createWall(centerX - 2, height/2, centerZ + 4.1, 22, height, 0.5);
+
+/* BAÑO */
+bathroomCube=new THREE.Mesh(new THREE.BoxGeometry(1.5,2,1.5),
+new THREE.MeshBasicMaterial({transparent:true,opacity:0}));
+bathroomCube.position.set(centerX -6.9,1.3,centerZ +1);
+scene.add(bathroomCube);
+
+bathroomText=createText('Presiona "E" para ir al baño');
+bathroomText.position.set(centerX -6.9,1.3,centerZ +1);
+scene.add(bathroomText);
+
+/* TIENDA */
+tiendaCube=new THREE.Mesh(new THREE.BoxGeometry(1.5,2,1.5),
+new THREE.MeshBasicMaterial({transparent:true,opacity:0}));
+tiendaCube.position.set(centerX +6,1.3,centerZ +0);
+scene.add(tiendaCube);
+
+tiendaText=createText('Presiona "E" para ir a la tienda TEM');
+tiendaText.position.set(centerX +7,1.5,centerZ +0);
+scene.add(tiendaText);
+
+/* SUSIE */
+loader.load("./models/Susie.glb",(gltf2)=>{
+const susie=gltf2.scene;
+susie.scale.set(0.7,0.7,0.7);
+susie.position.set(6.69,0.7,1.5);
+susie.rotation.y=Math.PI/2;
+scene.add(susie);
+
+susieInteractCube=new THREE.Mesh(
+new THREE.BoxGeometry(1.5,2,1.5),
+new THREE.MeshBasicMaterial({transparent:true,opacity:0})
+);
+susieInteractCube.position.set(6.69,1.5,0.5);
+scene.add(susieInteractCube);
+
+susieText=createText('Presiona "E" para dar patito');
+susieText.position.set(6.69,2.5,1.5);
+scene.add(susieText);
+});
+
+/* BOTÓN VERDE TELE */
+teleCube=new THREE.Mesh(
+new THREE.BoxGeometry(1.5,1.5,1.5),
+new THREE.MeshBasicMaterial({transparent:true, opacity:0})
+);
+teleCube.position.set(teleX +7.5,teleY,teleZ + 0);
+scene.add(teleCube);
+teleText=createText('Presiona "E" para entrar al CyberWorld');
+teleText.position.set(teleCube.position.x,teleCube.position.y+0.4,teleCube.position.z);
+scene.add(teleText);
+
+/* BOTÓN AZUL HABITACION */
+habitacionCube=new THREE.Mesh(
+new THREE.BoxGeometry(1.5,1.5,1.5),
+new THREE.MeshBasicMaterial({transparent:true, opacity:0})
+);
+habitacionCube.position.set(habitacionX +1.3,habitacionY,habitacionZ +0.8 );
+scene.add(habitacionCube);
+
+habitacionText=createText('Presiona "E" para subir a la Habitacion');
+habitacionText.position.set(habitacionCube.position.x,habitacionCube.position.y+0.4,habitacionCube.position.z - 0.9);
+scene.add(habitacionText);
+
+});
+
+/* CONTROLES */
+document.addEventListener("keydown",(e)=>{
+if(e.code==="KeyW") moveForward=true;
+if(e.code==="KeyS") moveBackward=true;
+if(e.code==="KeyA") moveLeft=true;
+if(e.code==="KeyD") moveRight=true;
+if(e.code==="KeyE") interactPressed=true;
+});
+document.addEventListener("keyup",(e)=>{
+if(e.code==="KeyW") moveForward=false;
+if(e.code==="KeyS") moveBackward=false;
+if(e.code==="KeyA") moveLeft=false;
+if(e.code==="KeyD") moveRight=false;
+if(e.code==="KeyE") interactPressed=false;
+});
+
+const playerBox=new THREE.Box3();
+
+function animate(){
+requestAnimationFrame(animate);
+renderInventory();
+
+const speed=0.15;
+const player=controls.getObject();
+const oldPos=player.position.clone();
+
+if(moveForward) controls.moveForward(speed);
+if(moveBackward) controls.moveForward(-speed);
+if(moveLeft) controls.moveRight(-speed);
+if(moveRight) controls.moveRight(speed);
+
+playerBox.setFromCenterAndSize(player.position,new THREE.Vector3(1,2,1));
+
+for(let wall of walls){
+const wallBox=new THREE.Box3().setFromObject(wall);
+if(playerBox.intersectsBox(wallBox)){
+player.position.copy(oldPos);
+}
+}
+
+
+
+/* VISIBILIDAD TEXTOS */
+
+// BAÑO
+if(bathroomCube){
+const box = new THREE.Box3().setFromObject(bathroomCube);
+bathroomText.visible = playerBox.intersectsBox(box);
+if(interactPressed && bathroomText.visible){
+window.location.href="baño.html";
+}
+}
+// TIENDA TEM (REQUIERE LLAVE2)
+if(tiendaCube){
+
+const box = new THREE.Box3().setFromObject(tiendaCube);
+tiendaText.visible = playerBox.intersectsBox(box);
+
+if(interactPressed && tiendaText.visible){
+
+// 🔥 CAMBIADO AQUÍ
+if(hasItem("Llave2")){
+
+window.location.href="tem.html";
+
+} else {
+
+document.getElementById("topMessage").innerText = "Necesitas otra llave para entrar...";
+document.getElementById("topMessage").style.display="block";
+
+setTimeout(()=>{
+document.getElementById("topMessage").style.display="none";
+},2000);
+
+}
+
+interactPressed = false; // evita que se dispare varias veces
+}
+}
+
+
+// SUSIE
+if(susieInteractCube){
+const box = new THREE.Box3().setFromObject(susieInteractCube);
+susieText.visible = playerBox.intersectsBox(box);
+if(interactPressed && susieText.visible){
+if(hasItem("patito")){
+removeItem("patito");
+document.getElementById("topMessage").style.display="block";
+setTimeout(()=>{
+document.getElementById("topMessage").style.display="none";
+addItem("Llave1");
+},2000);
+}
+}
+}
+
+// BOTÓN VERDE
+if(teleCube){
+const box=new THREE.Box3().setFromObject(teleCube);
+teleText.visible=playerBox.intersectsBox(box);
+if(interactPressed && teleText.visible){
+window.location.href="Spamton.html";
+}
+}
+
+// BOTÓN AZUL (SOLO CON LLAVE)
+if(habitacionCube){
+
+const box=new THREE.Box3().setFromObject(habitacionCube);
+habitacionText.visible=playerBox.intersectsBox(box);
+
+if(interactPressed && habitacionText.visible){
+
+if(hasItem("Llave1")){
+// ✅ TIENE LLAVE → ENTRA
+window.location.href="Habitacion.html";
+}else{
+// ❌ NO TIENE LLAVE → MENSAJE
+document.getElementById("topMessage").innerText = "La puerta está cerrada con llave.";
+document.getElementById("topMessage").style.display="block";
+
+setTimeout(()=>{
+document.getElementById("topMessage").style.display="none";
+},2000);
+}
+
+}
+
+}
+
+renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>

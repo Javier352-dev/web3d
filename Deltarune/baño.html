@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Baño</title>
+<style>
+body { margin:0; overflow:hidden; }
+
+/* INVENTARIO */
+#inventory {
+position: fixed;
+bottom: 10px;
+left: 10px;
+background: rgba(0,0,0,0.7);
+padding: 10px;
+border: 2px solid white;
+color: white;
+font-family: Arial;
+}
+
+#inventory img {
+width: 50px;
+margin-top: 5px;
+}
+</style>
+
+<script type="importmap">
+{
+ "imports": {
+ "three": "https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.module.js"
+ }
+}
+</script>
+</head>
+<body>
+
+<div id="inventory">
+<b>Inventario</b>
+<div id="inventoryItems"></div>
+</div>
+<audio id="bgMusic" loop>
+  <source src="Lancer.mp3" type="audio/mpeg">
+</audio>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/loaders/GLTFLoader.js";
+import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/controls/PointerLockControls.js";
+
+/* ========================= */
+/* INVENTARIO GLOBAL COMPARTIDO */
+/* ========================= */
+
+function getInventory(){
+return JSON.parse(localStorage.getItem("gameInventory")) || [];
+}
+
+function saveInventory(inv){
+localStorage.setItem("gameInventory", JSON.stringify(inv));
+}
+
+function addItem(itemName){
+let inv = getInventory();
+
+if(!inv.some(i => i.name === itemName)){
+inv.push({
+name: itemName,
+image: itemName === "patito" ? "patito.jpeg" : ""
+});
+saveInventory(inv);
+renderInventory();
+}
+}
+
+function renderInventory(){
+const container = document.getElementById("inventoryItems");
+container.innerHTML = "";
+const inv = getInventory();
+
+inv.forEach(item=>{
+let img = document.createElement("img");
+img.src = item.image;
+container.appendChild(img);
+});
+}
+
+renderInventory();
+
+/* ========================= */
+/* THREE */
+/* ========================= */
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111111);
+/* ================= MÚSICA ================= */
+
+const music = document.getElementById("bgMusic");
+music.volume = 0.8; // volumen (0.0 a 1.0)
+
+document.body.addEventListener("click", () => {
+    music.play().catch(()=>{});
+});
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 1));
+
+const controls = new PointerLockControls(camera, document.body);
+document.body.addEventListener("click", () => controls.lock());
+scene.add(controls.getObject());
+
+const walls = [];
+let interactPressed = false;
+let button = null;
+let buttonBox = new THREE.Box3();
+let interactionText = null;
+
+let lancer = null;
+let lancerPrompt = null;
+let lancerDialogue = null;
+let lancerTalking = false;
+
+function createWall(x, y, z, width, height, depth) {
+const wall = new THREE.Mesh(
+new THREE.BoxGeometry(width, height, depth),
+new THREE.MeshBasicMaterial({ visible: false })
+);
+wall.position.set(x, y, z);
+scene.add(wall);
+walls.push(wall);
+}
+
+const loader = new GLTFLoader();
+
+/* ========================= */
+/* CARGAR BAÑO */
+/* ========================= */
+loader.load("./models/Baño.glb", (gltf) => {
+
+scene.add(gltf.scene);
+
+const roomBox = new THREE.Box3().setFromObject(gltf.scene);
+const min = roomBox.min;
+const max = roomBox.max;
+
+const width = (max.x - min.x) / 1.5;
+const depth = (max.z - min.z) / 1.5;
+const height = max.y - min.y;
+
+const centerX = (min.x + max.x) / 2;
+const centerZ = (min.z + max.z) / 2;
+
+const extraSize = 20;
+
+controls.getObject().position.set(1, min.y + 1.6, 0);
+
+/* PAREDES */
+createWall(centerX, min.y + height / 2, centerZ - depth / 7.15, width + extraSize, height, 1);
+createWall(centerX, min.y + height / 2, centerZ + depth / 1.15, width + extraSize, height, 1);
+createWall(centerX - width / 1.15, min.y + height / 2, centerZ, 1, height, depth + extraSize);
+createWall(centerX + width / 1.15, min.y + height / 2, centerZ, 1, height, depth + extraSize);
+
+/* PARED NARANJA */
+const centerWall = new THREE.Mesh(
+new THREE.BoxGeometry(width / 2, height, 0.1),
+new THREE.MeshBasicMaterial({ color: 0xff8800 })
+);
+centerWall.position.set(centerX + 0.25, min.y + height / 2, centerZ + 0.89);
+centerWall.rotation.y = Math.PI / 2;
+scene.add(centerWall);
+walls.push(centerWall);
+
+/* BLOQUE LILA */
+const lilaBlock = new THREE.Mesh(
+new THREE.BoxGeometry(5, 1, 1),
+new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
+);
+lilaBlock.position.set(-2.3, 0.5, -2.7);
+scene.add(lilaBlock);
+walls.push(lilaBlock);
+
+/* BOTÓN INVISIBLE */
+button = new THREE.Mesh(
+new THREE.BoxGeometry(1, 1, 1),
+new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
+);
+button.position.set(centerX + 2.36, min.y + 0.5, centerZ + 2.45);
+scene.add(button);
+
+/* TEXTO VOLVER */
+const canvas = document.createElement("canvas");
+canvas.width = 512;
+canvas.height = 128;
+const context = canvas.getContext("2d");
+
+context.fillStyle = "white";
+context.font = "40px Arial";
+context.textAlign = "center";
+context.fillText('Presiona "E" para volver', 256, 70);
+
+interactionText = new THREE.Sprite(
+new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas) })
+);
+interactionText.scale.set(2,1,1);
+interactionText.position.set(centerX + 2.36, min.y + 2, centerZ + 2.45);
+interactionText.visible = false;
+scene.add(interactionText);
+
+/* ========================= */
+/* CARGAR LANCER */
+/* ========================= */
+loader.load("./models/Lancer1.glb", (gltf) => {
+
+lancer = gltf.scene;
+lancer.position.set(-1.90, 0.3, -2.60);
+scene.add(lancer);
+
+/* TEXTO ENCIMA DE LANCER */
+const canvasLancer = document.createElement("canvas");
+canvasLancer.width = 512;
+canvasLancer.height = 128;
+const ctxLancer = canvasLancer.getContext("2d");
+
+ctxLancer.fillStyle = "black";
+ctxLancer.font = "15px Arial";
+ctxLancer.textAlign = "center";
+ctxLancer.fillText('Presiona "E" para hablar con Lancer', 256, 70);
+
+lancerPrompt = new THREE.Sprite(
+new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvasLancer) })
+);
+
+lancerPrompt.scale.set(2.5,1,1);
+lancerPrompt.position.set(-1.90, 1.7, -2.60);
+lancerPrompt.visible = false;
+scene.add(lancerPrompt);
+
+/* TEXTO DIÁLOGO */
+const canvasDialogue = document.createElement("canvas");
+canvasDialogue.width = 512;
+canvasDialogue.height = 128;
+const ctxDialogue = canvasDialogue.getContext("2d");
+
+ctxDialogue.fillStyle = "white";
+ctxDialogue.font = "20px Arial";
+ctxDialogue.textAlign = "center";
+ctxDialogue.fillText('¡Soy un chico patito!', 256, 70);
+
+lancerDialogue = new THREE.Sprite(
+new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvasDialogue) })
+);
+
+lancerDialogue.scale.set(3,1,1);
+lancerDialogue.position.set(-1.90, 2, -2.60);
+lancerDialogue.visible = false;
+scene.add(lancerDialogue);
+
+});
+
+});
+
+/* CONTROLES */
+let moveForward=false,moveBackward=false,moveLeft=false,moveRight=false;
+
+document.addEventListener("keydown",(e)=>{
+if(e.code==="KeyW")moveForward=true;
+if(e.code==="KeyS")moveBackward=true;
+if(e.code==="KeyA")moveLeft=true;
+if(e.code==="KeyD")moveRight=true;
+if(e.code==="KeyE")interactPressed=true;
+});
+document.addEventListener("keyup",(e)=>{
+if(e.code==="KeyW")moveForward=false;
+if(e.code==="KeyS")moveBackward=false;
+if(e.code==="KeyA")moveLeft=false;
+if(e.code==="KeyD")moveRight=false;
+if(e.code==="KeyE")interactPressed=false;
+});
+
+const playerBox=new THREE.Box3();
+
+function animate(){
+requestAnimationFrame(animate);
+
+renderInventory();
+
+const player=controls.getObject();
+const oldPosition=player.position.clone();
+const speed=0.15;
+
+if(moveForward)controls.moveForward(speed);
+if(moveBackward)controls.moveForward(-speed);
+if(moveLeft)controls.moveRight(-speed);
+if(moveRight)controls.moveRight(speed);
+
+playerBox.setFromCenterAndSize(player.position,new THREE.Vector3(1,2,1));
+
+for (let wall of walls) {
+const wallBox = new THREE.Box3().setFromObject(wall);
+if (playerBox.intersectsBox(wallBox)) {
+player.position.copy(oldPosition);
+break;
+}
+}
+
+if (button) {
+buttonBox.setFromObject(button);
+if (playerBox.intersectsBox(buttonBox)) {
+interactionText.visible = true;
+if (interactPressed) window.location.href = "Casa.html";
+} else {
+interactionText.visible = false;
+}
+}
+
+if (lancer) {
+
+const lancerPosition = new THREE.Vector3(-1.90,0.3,-2.60);
+const distance = player.position.distanceTo(lancerPosition);
+
+if(distance < 2){
+
+lancerPrompt.visible = true;
+
+if(interactPressed){
+interactPressed = false;
+
+/* DAR PATITO SOLO UNA VEZ */
+const inv = getInventory();
+const alreadyHasPatito = inv.some(item => item.name === "patito");
+
+if(!alreadyHasPatito){
+addItem("patito");
+}
+
+/* MOSTRAR DIÁLOGO */
+lancerDialogue.visible = true;
+
+setTimeout(()=>{
+lancerDialogue.visible = false;
+},4000);
+
+}
+
+}else{
+lancerPrompt.visible = false;
+}
+
+lancer.rotation.y += 0.05;
+}
+
+renderer.render(scene,camera);
+}
+
+animate();
+</script>
+</body>
+</html>

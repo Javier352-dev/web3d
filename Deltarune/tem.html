@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Tem Village</title>
+<style>
+body { margin:0; overflow:hidden; }
+
+#info {
+position: fixed;
+top: 20px;
+left: 50%;
+transform: translateX(-50%);
+color: white;
+font-family: Arial;
+background: rgba(0,0,0,0.7);
+padding: 10px 20px;
+border: 2px solid white;
+}
+
+#inventory {
+position: fixed;
+bottom: 20px;
+left: 20px;
+width: 200px;
+min-height: 120px;
+background: rgba(0,0,0,0.8);
+border: 2px solid white;
+color: white;
+padding: 10px;
+font-family: Arial;
+}
+
+#inventory img {
+width: 40px;
+margin: 5px;
+}
+
+#dialogueBox {
+position: fixed;
+bottom: 150px;
+left: 50%;
+transform: translateX(-50%);
+width: 60%;
+background: black;
+color: white;
+padding: 20px;
+border: 3px solid white;
+font-family: Arial;
+display: none;
+}
+</style>
+
+<script type="importmap">
+{
+ "imports": {
+ "three": "https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.module.js"
+ }
+}
+</script>
+</head>
+<body>
+
+<div id="info">Click para empezar</div>
+<div id="inventory"><b>Inventario:</b><br></div>
+<div id="dialogueBox"></div>
+<audio id="bgMusic" loop>
+  <source src="Temie.mp3" type="audio/mpeg">
+</audio>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/loaders/GLTFLoader.js";
+import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/controls/PointerLockControls.js";
+
+/* ================= INVENTARIO ================= */
+
+function getInventory(){
+return JSON.parse(localStorage.getItem("gameInventory")) || [];
+}
+
+function saveInventory(inv){
+localStorage.setItem("gameInventory", JSON.stringify(inv));
+}
+
+function addItem(name,image){
+let inv = getInventory();
+if(!inv.some(i=>i.name===name)){
+inv.push({name,image});
+saveInventory(inv);
+renderInventory();
+}
+}
+
+function removeItem(name){
+let inv = getInventory();
+inv = inv.filter(i=>i.name!==name);
+saveInventory(inv);
+renderInventory();
+}
+
+function renderInventory(){
+const inventoryDiv=document.getElementById("inventory");
+inventoryDiv.innerHTML="<b>Inventario:</b><br>";
+getInventory().forEach(item=>{
+const img=document.createElement("img");
+img.src=item.image;
+inventoryDiv.appendChild(img);
+});
+}
+
+renderInventory();
+
+/* ================= ESCENA ================= */
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+
+const camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 1));
+
+const controls = new PointerLockControls(camera, document.body);
+scene.add(controls.getObject());
+
+document.body.addEventListener("click", () => {
+controls.lock();
+document.getElementById("info").style.display = "none";
+
+const music = document.getElementById("bgMusic");
+music.volume = 0.8; // volumen (0.0 a 1.0)
+music.play().catch(()=>{});
+});
+
+camera.position.set(-6, 1.6, -11);
+
+/* ================= SUELO ================= */
+
+const floor = new THREE.Mesh(
+new THREE.PlaneGeometry(200, 200),
+new THREE.MeshBasicMaterial({ visible: false })
+);
+floor.rotation.x = -Math.PI/2;
+scene.add(floor);
+
+/* ================= PAREDES ================= */
+
+const walls=[];
+function createWall(x,y,z,w,h,d){
+const wall=new THREE.Mesh(
+new THREE.BoxGeometry(w,h,d),
+new THREE.MeshBasicMaterial({visible:false})
+);
+wall.position.set(x,y,z);
+scene.add(wall);
+walls.push(wall);
+}
+
+createWall(-8.6,3,0,1,4,40);
+createWall(6.35,2,-3.6,20,4,1);
+createWall(-3.05,2,-14,20,4,1);
+createWall(13.5,2,0,1,4,20);
+createWall(15,2,5,100,4,1);
+createWall(-5,2,-13,6,4,1);
+createWall(-4,2,-11,1,4,13);
+
+/* ================= MAPA ================= */
+
+const loader=new GLTFLoader();
+const clock=new THREE.Clock();
+let villageMixer;
+let sansMixer;
+
+loader.load("./models/TemVillage.glb",(gltf)=>{
+const map=gltf.scene;
+scene.add(map);
+if(gltf.animations.length>0){
+villageMixer=new THREE.AnimationMixer(map);
+gltf.animations.forEach(clip=>{
+villageMixer.clipAction(clip).play();
+});
+}
+});
+
+/* ================= SANS ================= */
+
+let sansCube=new THREE.Mesh(
+new THREE.BoxGeometry(2,3,2),
+new THREE.MeshBasicMaterial({visible:false})
+);
+sansCube.position.set(7.5,1.5,1);
+scene.add(sansCube);
+
+let sansCubeBox=new THREE.Box3();
+
+loader.load("./models/Sans.glb",(gltf)=>{
+const sans=gltf.scene;
+sans.position.set(8.5,0,1);
+sans.scale.set(0.04,0.04,0.04);
+sans.rotation.y=4.5;
+scene.add(sans);
+
+if(gltf.animations.length>0){
+sansMixer=new THREE.AnimationMixer(sans);
+gltf.animations.forEach(clip=>{
+sansMixer.clipAction(clip).play();
+});
+}
+});
+
+/* TEXTO SANS */
+
+const sansCanvas=document.createElement("canvas");
+sansCanvas.width=512;
+sansCanvas.height=128;
+const sansCtx=sansCanvas.getContext("2d");
+
+sansCtx.fillStyle="green";
+sansCtx.font="20px Arial";
+sansCtx.textAlign="center";
+sansCtx.fillText('Pulsa "E" para hablar con el Huesudo',256,70);
+
+const sansTextSprite=new THREE.Sprite(
+new THREE.SpriteMaterial({map:new THREE.CanvasTexture(sansCanvas)})
+);
+
+sansTextSprite.scale.set(3,1,1);
+sansTextSprite.position.set(7.8,1.4,1);
+sansTextSprite.visible=false;
+scene.add(sansTextSprite);
+
+/* ================= VOLVER ================= */
+
+let returnCube=new THREE.Mesh(
+new THREE.BoxGeometry(2,2,2),
+new THREE.MeshBasicMaterial({visible:false})
+);
+returnCube.position.set(-6,1.6,-11);
+scene.add(returnCube);
+
+let returnCubeBox=new THREE.Box3();
+
+const returnCanvas=document.createElement("canvas");
+returnCanvas.width=512;
+returnCanvas.height=128;
+const returnCtx=returnCanvas.getContext("2d");
+
+returnCtx.fillStyle="white";
+returnCtx.font="20px Arial";
+returnCtx.textAlign="center";
+returnCtx.fillText('Pulsa "E" para volver a Casa',256,70);
+
+const returnTextSprite=new THREE.Sprite(
+new THREE.SpriteMaterial({map:new THREE.CanvasTexture(returnCanvas)})
+);
+
+returnTextSprite.scale.set(4,1,1);
+returnTextSprite.position.set(-6,1.4,-11);
+returnTextSprite.visible=false;
+scene.add(returnTextSprite);
+
+/* ================= TEM ================= */
+
+let temCube=new THREE.Mesh(
+new THREE.BoxGeometry(2,2,2),
+new THREE.MeshBasicMaterial({transparent:true,opacity:0})
+);
+
+temCube.position.set(6,1.5,-2.99);
+scene.add(temCube);
+
+let temCubeBox=new THREE.Box3();
+
+const temCanvas=document.createElement("canvas");
+temCanvas.width=512;
+temCanvas.height=128;
+const temCtx=temCanvas.getContext("2d");
+
+temCtx.fillStyle="white";
+temCtx.font="18px Arial";
+temCtx.textAlign="center";
+temCtx.fillText('Pulsa "E" para hablar con Tem',256,70);
+
+const temTextSprite=new THREE.Sprite(
+new THREE.SpriteMaterial({map:new THREE.CanvasTexture(temCanvas)})
+);
+
+temTextSprite.scale.set(4,1,1);
+temTextSprite.position.set(6,1.5,-3);
+temTextSprite.visible=false;
+scene.add(temTextSprite);
+
+const dialogueBox=document.getElementById("dialogueBox");
+
+/* ================= MOVIMIENTO ================= */
+
+let moveForward=false,moveBackward=false,moveLeft=false,moveRight=false,interactPressed=false;
+
+document.addEventListener("keydown",(e)=>{
+if(e.code==="KeyW") moveForward=true;
+if(e.code==="KeyS") moveBackward=true;
+if(e.code==="KeyA") moveLeft=true;
+if(e.code==="KeyD") moveRight=true;
+if(e.code==="KeyE") interactPressed=true;
+});
+
+document.addEventListener("keyup",(e)=>{
+if(e.code==="KeyW") moveForward=false;
+if(e.code==="KeyS") moveBackward=false;
+if(e.code==="KeyA") moveLeft=false;
+if(e.code==="KeyD") moveRight=false;
+if(e.code==="KeyE") interactPressed=false;
+});
+
+const playerBox=new THREE.Box3();
+
+function animate(){
+requestAnimationFrame(animate);
+
+const delta=clock.getDelta();
+if(villageMixer) villageMixer.update(delta);
+if(sansMixer) sansMixer.update(delta);
+
+const speed=0.15;
+const player=controls.getObject();
+const oldPosition=player.position.clone();
+
+if(moveForward) controls.moveForward(speed);
+if(moveBackward) controls.moveForward(-speed);
+if(moveLeft) controls.moveRight(-speed);
+if(moveRight) controls.moveRight(speed);
+
+playerBox.setFromCenterAndSize(player.position,new THREE.Vector3(1,2,1));
+
+for(let wall of walls){
+const wallBox=new THREE.Box3().setFromObject(wall);
+if(playerBox.intersectsBox(wallBox)){
+player.position.copy(oldPosition);
+break;
+}
+}
+
+/* ===== SANS ===== */
+
+sansCubeBox.setFromObject(sansCube);
+
+if(playerBox.intersectsBox(sansCubeBox)){
+sansTextSprite.visible=true;
+
+if(interactPressed){
+dialogueBox.innerText=`Este ketchup tiene mucho valor, siento que un pez gordo lo compraria a buen precio`;
+dialogueBox.style.display="block";
+addItem("ketchup","./models/ketchup.png");
+
+setTimeout(()=>{dialogueBox.style.display="none";},3000);
+}
+}else{
+sansTextSprite.visible=false;
+}
+
+//* ===== TEM ===== */
+
+temCubeBox.setFromObject(temCube);
+
+if(playerBox.intersectsBox(temCubeBox)){
+    temTextSprite.visible = true;
+
+    if(interactPressed){
+
+        interactPressed = false; // evita spam
+
+        let inv = getInventory();
+
+        if(inv.some(i => i.name === "Peluche")){
+
+            removeItem("Peluche");
+            addItem("Pipis","Pipis.png");
+
+            dialogueBox.innerText = "Tem intercambia Peluche por Pipis!";
+            dialogueBox.style.display = "block";
+
+        } else {
+
+            dialogueBox.innerText = "Tem quiere un Peluche...";
+            dialogueBox.style.display = "block";
+        }
+
+        setTimeout(()=>{
+            dialogueBox.style.display = "none";
+        },3000);
+    }
+
+}else{
+    temTextSprite.visible = false;
+}
+
+/* ===== VOLVER ===== */
+
+returnCubeBox.setFromObject(returnCube);
+
+if(playerBox.intersectsBox(returnCubeBox)){
+returnTextSprite.visible=true;
+
+if(interactPressed){
+window.location.href="Casa.html";
+}
+}else{
+returnTextSprite.visible=false;
+}
+
+renderer.render(scene,camera);
+}
+
+animate();
+</script>
+</body>
+</html>

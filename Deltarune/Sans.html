@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Desafío de Sans</title>
+
+<style>
+body{
+    margin:0;
+    background-color:black;
+    color:white;
+    font-family: Arial, sans-serif;
+    text-align:center;
+}
+
+.container{
+    margin-top:50px;
+}
+
+img{
+    width:300px;
+}
+
+.dialogue{
+    margin-top:30px;
+    font-size:22px;
+    min-height:60px;
+}
+
+button{
+    margin-top:40px;
+    padding:12px 30px;
+    font-size:18px;
+    background:black;
+    color:white;
+    border:2px solid white;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    background:white;
+    color:black;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <img id="sansImage" src="Sans1.png" alt="Sans">
+    
+    <div class="dialogue" id="dialogueText">
+        Recuerdas el Ketchup que te di?
+    </div>
+
+    <button id="actionButton" onclick="nextDialogue()">Siguiente</button>
+</div>
+
+<script>
+let step = 0;
+
+function nextDialogue(){
+
+    const text = document.getElementById("dialogueText");
+    const image = document.getElementById("sansImage");
+    const button = document.getElementById("actionButton");
+
+    if(step === 0){
+        text.innerText = "Bueno, era una trampa para que vinieras hasta aqui";
+        text.style.color = "white";
+        step++;
+    }
+    else if(step === 1){
+        image.src = "Sans2.png";
+        text.innerText = "Haver cuantos intentos necesitas para derrotarme";
+        text.style.color = "red";
+
+        button.innerText = "Aceptar Desafío";
+        button.onclick = function(){
+            window.location.href = "https://jcw87.github.io/c2-sans-fight/";
+        };
+        step++;
+    }
+
+}
+</script>
+
+</body>
+</html>

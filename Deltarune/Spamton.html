@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Spamton</title>
+
+<style>
+body { margin:0; overflow:hidden; }
+
+#info {
+position: fixed;
+top: 20px;
+left: 50%;
+transform: translateX(-50%);
+color: white;
+font-family: Arial;
+background: rgba(0,0,0,0.7);
+padding: 10px 20px;
+border: 2px solid white;
+}
+
+#inventory {
+position: fixed;
+bottom: 20px;
+left: 20px;
+width: 200px;
+min-height: 120px;
+background: rgba(0,0,0,0.8);
+border: 2px solid white;
+color: white;
+padding: 10px;
+font-family: Arial;
+}
+
+#inventory img {
+width: 40px;
+margin: 5px;
+}
+
+#topMessage{
+position: fixed;
+top: 70px;
+left: 50%;
+transform: translateX(-50%);
+background: rgba(0,0,0,0.85);
+color: white;
+padding: 15px;
+font-family: Arial;
+font-size: 20px;
+border: 2px solid white;
+display: none;
+z-index: 1000;
+}
+</style>
+
+<script type="importmap">
+{
+ "imports": {
+ "three": "https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.module.js"
+ }
+}
+</script>
+</head>
+<body>
+
+<div id="info">Click para empezar</div>
+<div id="inventory"><b>Inventario:</b><br></div>
+<div id="topMessage"></div>
+<audio id="bgMusic" loop>
+  <source src="Spamton.mp3" type="audio/mpeg">
+</audio>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/loaders/GLTFLoader.js";
+import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/controls/PointerLockControls.js";
+
+/* ================= INVENTARIO ================= */
+
+function getInventory(){
+return JSON.parse(localStorage.getItem("gameInventory")) || [];
+}
+
+function saveInventory(inv){
+localStorage.setItem("gameInventory", JSON.stringify(inv));
+}
+
+function renderInventory(){
+const inventoryDiv=document.getElementById("inventory");
+inventoryDiv.innerHTML="<b>Inventario:</b><br>";
+
+const inv = getInventory();
+inv.forEach(item=>{
+if(item.image){
+const img=document.createElement("img");
+img.src=item.image;
+inventoryDiv.appendChild(img);
+}
+});
+}
+
+function removeItemByImage(imageName){
+let inv = getInventory();
+inv = inv.filter(item => item.image !== imageName);
+saveInventory(inv);
+renderInventory();
+}
+
+function addItem(item){
+let inv = getInventory();
+inv.push(item);
+saveInventory(inv);
+renderInventory();
+}
+
+renderInventory();
+
+/* ================= ESCENA ================= */
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+
+const controls = new PointerLockControls(camera, document.body);
+scene.add(controls.getObject());
+
+document.body.addEventListener("click", () => {
+controls.lock();
+document.getElementById("info").style.display = "none";
+
+const music = document.getElementById("bgMusic");
+music.volume = 0.8; // puedes cambiar el volumen
+music.play().catch(()=>{});
+});
+
+camera.position.set(0, 1.6, 5);
+
+/* ================= SUELO ================= */
+
+const floor = new THREE.Mesh(
+new THREE.PlaneGeometry(50, 50),
+new THREE.MeshBasicMaterial({ color: 0x111111 })
+);
+floor.rotation.x = -Math.PI/2;
+scene.add(floor);
+
+/* ================= PAREDES ================= */
+
+const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+const wall1 = new THREE.Mesh(new THREE.BoxGeometry(20,5,1), wallMaterial);
+wall1.position.set(0,2.5,-10);
+scene.add(wall1);
+
+const wall2 = new THREE.Mesh(new THREE.BoxGeometry(20,5,1), wallMaterial);
+wall2.position.set(0,2.5,10);
+scene.add(wall2);
+
+const wall3 = new THREE.Mesh(new THREE.BoxGeometry(1,5,20), wallMaterial);
+wall3.position.set(-10,2.5,0);
+scene.add(wall3);
+
+const wall4 = new THREE.Mesh(new THREE.BoxGeometry(1,5,20), wallMaterial);
+wall4.position.set(10,2.5,0);
+scene.add(wall4);
+
+const walls = [wall1, wall2, wall3, wall4];
+const playerBox = new THREE.Box3();
+
+/* ================= BOTÓN ROJO ================= */
+
+const returnCube = new THREE.Mesh(
+new THREE.BoxGeometry(0.5,0.5,0.5),
+new THREE.MeshBasicMaterial({ color: 0xff0000 })
+);
+returnCube.position.set(0,1,6);
+scene.add(returnCube);
+
+const returnCubeBox = new THREE.Box3();
+
+const returnText = createText('Pulsa "E" para volver a casa');
+returnText.position.set(0,1.4,7);
+scene.add(returnText);
+
+/* ================= BOTÓN VERDE ================= */
+
+const greenCube = new THREE.Mesh(
+new THREE.BoxGeometry(0.5,0.5,0.5),
+new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+);
+greenCube.position.set(0,1,3); // delante tuya
+scene.add(greenCube);
+
+const greenCubeBox = new THREE.Box3();
+
+const greenText = createText('Pulsa "E" para dar Pipis');
+greenText.position.set(0,1.4,3);
+scene.add(greenText);
+/* ================= BLOQUE PUERTA FINAL ================= */
+
+const finalCube = new THREE.Mesh(
+new THREE.BoxGeometry(0.7,0.7,0.7),
+new THREE.MeshBasicMaterial({ 
+    transparent: true,
+    opacity: 0
+})
+);
+
+finalCube.position.set(0,1.3,-8.2);
+scene.add(finalCube);
+
+const finalCubeBox = new THREE.Box3();
+
+const finalText = createText('Pulsa "E" para Abrir Puerta Final');
+finalText.position.set(0,1.3,-9.0);
+scene.add(finalText);
+/* ================= FUNCIÓN TEXTO ================= */
+
+function createText(text){
+const canvas=document.createElement("canvas");
+canvas.width=512;
+canvas.height=128;
+const ctx=canvas.getContext("2d");
+ctx.fillStyle="white";
+ctx.font="20px Arial";
+ctx.textAlign="center";
+ctx.fillText(text,256,70);
+
+const sprite=new THREE.Sprite(
+new THREE.SpriteMaterial({map:new THREE.CanvasTexture(canvas)})
+);
+sprite.scale.set(4,1,1);
+sprite.visible=false;
+return sprite;
+}
+
+/* ================= SPAMTON ================= */
+
+const loader = new GLTFLoader();
+let spamtonMixer;
+const clock = new THREE.Clock();
+
+loader.load("./models/Spamton.glb", (gltf) => {
+const spamton = gltf.scene;
+spamton.position.set(0, 0.7, 0);
+spamton.scale.set(4,4,4);
+scene.add(spamton);
+
+if(gltf.animations.length > 0){
+spamtonMixer = new THREE.AnimationMixer(spamton);
+gltf.animations.forEach((clip)=>{
+spamtonMixer.clipAction(clip).play();
+});
+}
+});
+
+
+/* ================= PUERTA (door.glb) ================= */
+
+let door; // variable global para modificarla luego
+
+loader.load("./models/door.glb", (gltf) => {
+
+door = gltf.scene;
+
+/* ====== POSICIÓN (CAMBIA ESTO) ====== */
+// X = izquierda (-) / derecha (+)
+// Y = altura
+// Z = adelante (-) / atrás (+)
+
+door.position.set(0, 4.3, -9.2);
+
+
+
+
+door.scale.set(0.04, 0.04, 0.04);
+
+
+/* ====== ROTACIÓN ====== */
+// 0 = normal
+// Math.PI/2 = 90°
+// Math.PI = 180°
+
+door.rotation.y = 1.54;
+
+scene.add(door);
+
+});
+
+/* ================= CONTROLES ================= */
+
+let moveForward=false, moveBackward=false, moveLeft=false, moveRight=false, interact=false;
+
+document.addEventListener("keydown",(e)=>{
+if(e.code==="KeyW") moveForward=true;
+if(e.code==="KeyS") moveBackward=true;
+if(e.code==="KeyA") moveLeft=true;
+if(e.code==="KeyD") moveRight=true;
+if(e.code==="KeyE") interact=true;
+});
+
+document.addEventListener("keyup",(e)=>{
+if(e.code==="KeyW") moveForward=false;
+if(e.code==="KeyS") moveBackward=false;
+if(e.code==="KeyA") moveLeft=false;
+if(e.code==="KeyD") moveRight=false;
+if(e.code==="KeyE") interact=false;
+});
+
+/* ================= LOOP ================= */
+
+function animate(){
+requestAnimationFrame(animate);
+
+const delta = clock.getDelta();
+if(spamtonMixer) spamtonMixer.update(delta);
+
+const speed = 0.15;
+const player = controls.getObject();
+const oldPosition = player.position.clone();
+
+if(moveForward) controls.moveForward(speed);
+if(moveBackward) controls.moveForward(-speed);
+if(moveLeft) controls.moveRight(-speed);
+if(moveRight) controls.moveRight(speed);
+
+playerBox.setFromCenterAndSize(player.position,new THREE.Vector3(1,2,1));
+
+for(let wall of walls){
+const wallBox = new THREE.Box3().setFromObject(wall);
+if(playerBox.intersectsBox(wallBox)){
+player.position.copy(oldPosition);
+break;
+}
+}
+
+/* BOTÓN ROJO */
+returnCubeBox.setFromObject(returnCube);
+if(playerBox.intersectsBox(returnCubeBox)){
+returnText.visible=true;
+if(interact){
+interact=false;
+window.location.href="Casa.html";
+}
+}else{
+returnText.visible=false;
+}
+
+/* BOTÓN VERDE */
+greenCubeBox.setFromObject(greenCube);
+if(playerBox.intersectsBox(greenCubeBox)){
+greenText.visible=true;
+if(interact){
+interact=false;
+
+const inv = getInventory();
+const hasPipis = inv.some(item => item.image === "Pipis.png");
+
+if(hasPipis){
+
+// Quitar Pipis
+removeItemByImage("Pipis.png");
+
+// Dar Kromer
+addItem({
+name: "Kromer",
+image: "Kromer.png"
+});
+
+showMessage("Ahora tienes un [KROMER] eres un [PEZ GORDO] en proceso.");
+
+
+}else{
+showMessage("Hola [HUMANO] si quieres ser un [PEZ GORDO] dame un [Pipis].");
+}
+
+}
+}else{
+greenText.visible=false;
+}
+/* BOTÓN PUERTA FINAL */
+finalCubeBox.setFromObject(finalCube);
+
+if(playerBox.intersectsBox(finalCubeBox)){
+finalText.visible=true;
+
+if(interact){
+interact=false;
+
+const inv = getInventory();
+const hasKromer = inv.some(item => item.image === "Kromer.png");
+
+if(hasKromer){
+
+showMessage("LA PUERTA FINAL SE ABRE...");
+
+window.location.href = "Final.html"; // cambia si quieres
+
+}else{
+showMessage("Te falta aura de [Pez Gordo] para entrar.");
+}
+
+}
+
+}else{
+finalText.visible=false;
+}
+
+renderer.render(scene,camera);
+}
+
+function showMessage(text){
+const msg=document.getElementById("topMessage");
+msg.innerText=text;
+msg.style.display="block";
+setTimeout(()=>{
+msg.style.display="none";
+},12500);
+}
+
+animate();
+</script>
+</body>
+</html>

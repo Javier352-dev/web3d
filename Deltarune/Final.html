@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Gracias por Jugar</title>
+
+<style>
+body{
+    margin:0;
+    padding:0;
+    background-image: url("Fondo.gif");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    font-family: Arial, sans-serif;
+    color: white;
+}
+
+/* TEXTO MUSICA ARRIBA */
+.music-info{
+    position: fixed;
+    top: 10px;
+    width: 100%;
+    text-align: center;
+    font-size: 18px;
+    color: yellow;
+    background: rgba(0,0,0,0.6);
+    padding: 8px;
+    z-index: 1000;
+}
+
+/* Contenedor general */
+.container{
+    display: flex;
+    height: 100vh;
+    align-items: center;
+    justify-content: space-between;
+    padding: 40px;
+}
+
+/* Lado izquierdo */
+.left{
+    text-align: center;
+}
+
+.twitch-button{
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.twitch-button img{
+    width: 250px;
+    display: block;
+    margin: 10px auto;
+    transition: 0.3s;
+}
+
+.twitch-button img:hover{
+    transform: scale(1.1);
+}
+
+/* Centro */
+.center{
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.center h1{
+    font-size: 40px;
+    margin-bottom: 20px;
+}
+
+.center p{
+    font-size: 20px;
+}
+
+/* Botón derecha */
+.right{
+    text-align: center;
+}
+
+.secret-button{
+    padding: 15px 30px;
+    font-size: 18px;
+    background-color: black;
+    color: white;
+    border: 2px solid white;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.secret-button:hover{
+    background-color: white;
+    color: black;
+}
+</style>
+</head>
+
+<body>
+
+<!-- TEXTO SUPERIOR -->
+<div class="music-info">(Dar clic para activar la musica)</div>
+
+<div class="container">
+
+    <!-- IZQUIERDA -->
+    <div class="left">
+        <h2>Canal de Twitch de Alan:</h2>
+        <a href="https://www.twitch.tv/alodias840" target="_blank">
+            <button class="twitch-button">
+                <img src="Twitch.png" alt="Twitch">
+            </button>
+        </a>
+    </div>
+
+    <!-- CENTRO -->
+    <div class="center">
+        <h1>GRACIAS POR JUGAR ^^)</h1>
+        <p>Creditos: Alan Lujan Javier Crespo</p>
+    </div>
+
+    <!-- DERECHA -->
+    <div class="right">
+        <button class="secret-button" onclick="window.location.href='Sans.html'">
+            Nivel Secreto
+        </button>
+    </div>
+
+</div>
+
+<!-- MUSICA -->
+<audio id="bgMusic" loop>
+    <source src="Home.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+const music = document.getElementById("bgMusic");
+music.volume = 1;
+
+document.addEventListener("click", function(){
+    music.play().catch(()=>{});
+}, { once: true });
+</script>
+
+</body>
+</html>
