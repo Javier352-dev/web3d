@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>DELTARUNE</title>
+    <style>
+        body {
+            /* Imagen de fondo */
+            background-image: url('cw.png');
+            background-size: cover;       
+            background-position: center;  
+            background-repeat: no-repeat;
+            
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Contenedor principal */
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 40px; /* espacio entre columnas */
+            padding: 40px;
+        }
+
+        /* Columna izquierda */
+        .izquierda {
+            flex: 0 0 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .izquierda img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        .descripcion-izquierda {
+            font-size: 14px;
+            line-height: 1.5;
+            text-align: justify;
+            background-color: rgba(0, 0, 0, 0.6); /* fondo semi-transparente */
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .video-secundario {
+            width: 100%;
+            max-width: 400px;
+            max-height: 300px;
+            border-radius: 10px;
+        }
+
+        /* Columna central */
+        .central {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 650px;
+            gap: 30px;
+        }
+
+        .portada {
+            width: 100%;
+            max-height: 500px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .entrar-juego {
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: red; 
+            color: white;
+            text-decoration: none;
+            font-size: 22px;
+            border-radius: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .entrar-juego:hover {
+            background-color: darkred;
+        }
+
+        .imagen-debajo-boton {
+            width: 100%;
+            max-width: 600px;
+            border-radius: 10px;
+        }
+
+        /* Columna derecha */
+        .derecha {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex: 0 0 220px;
+        }
+
+        .derecha img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        /* Para responsividad en pantallas más pequeñas */
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .izquierda, .derecha {
+                flex: none;
+                width: 80%;
+                margin-bottom: 30px;
+            }
+            .central {
+                width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Columna izquierda -->
+        <div class="izquierda">
+            <!-- Imagen arriba -->
+            <img src="sexy.webp" alt="Imagen izquierda sexy">
+
+            <!-- Descripción debajo de la imagen -->
+            <div class="descripcion-izquierda">
+                Ets tu qui viu en aquesta casa, qui observa tot el que passa i qui ha de moure’s per l’habitació, el lavabo i la sala principal per trobar claus, codis i objectes que et permetin sortir. Amb l’ajuda d’en Ralsei, en Susie, en Lancer, en Sans i en Temmie, has de resoldre enigmes i avançar pas a pas fins arribar a la guarida d’en Spamton. Cada clic, cada pista i cada interacció t’acosten al teu objectiu final: descobrir els secrets d’en Spamton i completar aquesta aventura dins del món de Deltarune.
+            </div>
+
+            <!-- Video debajo del texto -->
+            <video class="video-secundario" controls>
+                <source src="video.mp4" type="video/mp4">
+                Tu navegador no soporta el video.
+            </video>
+        </div>
+
+        <!-- Columna central -->
+        <div class="central">
+            <!-- Portada -->
+            <img src="portada.png" alt="Portada del juego" class="portada">
+
+            <!-- Botón de inicio -->
+            <a href="deltarune.html" class="entrar-juego">Entrar al juego</a>
+
+            <!-- Imagen debajo del botón -->
+            <img src="toby.jpg" alt="Imagen debajo del botón" class="imagen-debajo-boton">
+        </div>
+
+        <!-- Columna derecha -->
+        <div class="derecha">
+            <img src="K.jpg" alt="Imagen derecha 1">
+            <img src="S.jpg" alt="Imagen derecha 2">
+            <img src="R.png" alt="Imagen derecha 3">
+        </div>
+    </div>
+</body>
+</html>
